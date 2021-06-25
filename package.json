@@ -42,7 +42,26 @@
     "parserOptions": {
       "parser": "babel-eslint"
     },
-    "rules": {}
+    "rules": {
+      "import/extensions": [
+        2,
+        "never",
+        {
+          "vue": "always"
+        }
+      ],
+      "no-plusplus": 0
+    },
+    "settings": {
+      "alias": {
+        "map": [
+          [
+            "@",
+            "src"
+          ]
+        ]
+      }
+    }
   },
   "browserslist": [
     "> 1%",
