@@ -14,6 +14,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import App from './App.vue';
+import displayDate from './filters/displayDate';
 
 // 處理icon消失的程式碼
 delete Icon.Default.prototype._getIconUrl;
@@ -33,6 +34,8 @@ Vue.component('v-marker-cluster', Vue2LeafletMarkerCluster);
 Vue.config.productionTip = false;
 
 Vue.use(vueAxios, axios);
+
+Vue.filter('displayDate', displayDate);
 
 new Vue({
   render: (h) => h(App),
