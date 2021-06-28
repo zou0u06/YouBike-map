@@ -3,15 +3,25 @@
     <div class="row">
       <div class="col-md-4">
         <div class="featurebox">
-          <div class="sticky-top">
-            <div class="featurebox-bar input-group d-flex">
+            <div class="featurebox-bar">
               <input type="text"
                 v-model="searchText"
                 placeholder="尋找站點"
-                class="form-control w-100"
+                class="featurebox-bar-input"
               />
+              <span
+                class="featurebox-bar-icon"
+                @click="navsActive = 'searchs'"
+              >
+                <i class="fas fa-search"/>
+              </span>
+              <span
+                class="featurebox-bar-icon"
+                @click="navsActive = 'favs'"
+              >
+                <i class="fas fa-star"/>
+              </span>
             </div>
-          </div>
           <ul
             v-if="navsActive === 'searchs'"
             class="list-group featurebox-result"
@@ -27,25 +37,61 @@
                 <span>{{ search.sna }}</span>
                 <i
                   v-if="!search.favored"
-                  class="favicon far fa-star"
+                  class="icon-favs far fa-star"
                   @click.stop="addToFavYoubikes(search.sno)"
                 />
                 <i
                   v-else
-                  class="favicon fas fa-star"
+                  class="icon-favs fas fa-star"
                   @click.stop="deletedFavYoubikes(search.sno)"
                 />
               </h4>
               <h6 class="d-flex justify-content-between">
                 <span v-if="search.act === '1'">正常營運</span>
                 <span v-else>暫停營運</span>
-                <span>位於{{ search.sarea }}</span>
+                <span>可借：{{ search.sbi }}</span>
+                <span>可還：{{ search.bemp }}</span>
               </h6>
+              <h6 class="mb-0">地址：{{ search.ar }}</h6>
+            </li>
+          </ul>
+          <ul
+            v-if="navsActive === 'favs'"
+            class="list-group featurebox-result"
+          >
+            <li
+              v-if="favs.length === 0"
+              class="mt-3 text-center"
+            >
+              目前尚無儲存站點
+            </li>
+            <li
+              v-for="fav in favs"
+              :key="fav.sno"
+              class="list-group-item"
+              :class="{ 'text-danger': fav.act === '0'}"
+              @click="focusOn(fav)"
+            >
+              <h4 class="d-flex justify-content-between align-items-center">
+                <span>{{ fav.sna }}</span>
+                <i
+                  v-if="!fav.favored"
+                  class="icon-favs far fa-star"
+                  @click.stop="addToFavYoubikes(fav.sno)"
+                />
+                <i
+                  v-else
+                  class="icon-favs fas fa-star"
+                  @click.stop="deletedFavYoubikes(fav.sno)"
+                />
+              </h4>
               <h6 class="d-flex justify-content-between">
-                <span>可借車輛：{{ search.sbi }}</span>
-                <span>可還車位：{{ search.bemp }}</span>
+                <span v-if="fav.act === '1'">正常營運</span>
+                <span v-else>暫停營運</span>
+                <span>可借：{{ fav.sbi }}</span>
+                <span>可還：{{ fav.bemp }}</span>
               </h6>
-              <h6>地址：{{ search.ar }}</h6>
+              <h6 class="mb-0">地址：{{ fav.ar }}</h6>
             </li>
           </ul>
         </div>
@@ -66,23 +112,20 @@
                   <span>{{ youbike.sna }}</span>
                   <i
                     v-if="!youbike.favored"
-                    class="favicon far fa-star"
+                    class="icon-popup icon-favs far fa-star"
                     @click.stop="addToFavYoubikes(youbike.sno)"
                   />
                   <i
                     v-else
-                    class="favicon fas fa-star"
+                    class="icon-popup icon-favs fas fa-star"
                     @click.stop="deletedFavYoubikes(youbike.sno)"
                   />
                 </h4>
                 <h6 class="d-flex justify-content-between">
                   <span v-if="youbike.act === '1'">正常營運</span>
                   <span v-else>暫停營運</span>
-                  <span>位於{{ youbike.sarea }}</span>
-                </h6>
-                <h6 class="d-flex justify-content-between">
-                  <span>可借車輛：{{ youbike.sbi }}</span>
-                  <span>可還車位：{{ youbike.bemp }}</span>
+                  <span>可借：{{ youbike.sbi }}</span>
+                  <span>可還：{{ youbike.bemp }}</span>
                 </h6>
                 <h6>地址：{{ youbike.ar }}</h6>
                 <h6>資料更新時間  {{ youbike.mday|displayDate }}</h6>
@@ -132,22 +175,18 @@ export default {
               tempSearchs.push({ ...item, oriIndex });
             }
           });
-          console.log(tempSearchs);
           return tempSearchs;
         }
       }
-      // return this.youbikes.filter((item) => item.ar.includes(searchText));
-      // this.weather.filter((item) => item.locationName === this.location);
-      // switch (this.location) {
-      //   case '':
-      //     return this.youbike;
-      //   default: {
-      //     const tempData = this.youbike.filter(
-      //       (item) => item.sarea === this.location,
-      //     );
-      //     return tempData;
-      //   }
-      // }
+    },
+    favs() {
+      const tempFavs = [];
+      this.youbikes.forEach((item, oriIndex) => {
+        if (item.favored) {
+          tempFavs.push({ ...item, oriIndex });
+        }
+      });
+      return tempFavs;
     },
   },
   watch: {
@@ -242,14 +281,9 @@ export default {
       });
     },
   },
-  mounted() {
+  created() {
     this.getYoubikes();
     // this.getWeather();
-    // const vm = this;
-    // console.log(vm.$refs.marker.mapObject);
-    // vm.$nextTick(() => {
-    //   vm.$refs.marker.mapObject.openPopup();
-    // });
   },
 };
 </script>
@@ -280,16 +314,46 @@ export default {
   }
 }
 .featurebox-bar {
+  width: 100%;
   height: 60px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  line-height: 1.5;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #212529;
+}
+.featurebox-bar-input {
+  flex: 1 1 auto;
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.75rem;
+}
+.featurebox-bar-icon {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
 }
 .featurebox-result {
   height: 25vh;
   overflow-y: auto;
+  @include media-breakpoint-up(md) {
+    height: 100vh;
+  }
 }
-.favicon {
+.icon-favs {
+  font-size: 20px;
+}
+.icon-popup {
   position: relative;
   bottom: 2px;
-  font-size: 20px;
 }
 .leaflet-popup-content {
   width: 260px !important;
