@@ -3,25 +3,26 @@
     <div class="row">
       <div class="col-md-4">
         <div class="featurebox">
-            <div class="featurebox-bar">
-              <input type="text"
-                v-model="searchText"
-                placeholder="尋找站點"
-                class="featurebox-bar-input"
-              />
-              <span
-                class="featurebox-bar-icon"
-                @click="navsActive = 'searchs'"
-              >
-                <i class="fas fa-search"/>
-              </span>
-              <span
-                class="featurebox-bar-icon"
-                @click="navsActive = 'favs'"
-              >
-                <i class="fas fa-star"/>
-              </span>
-            </div>
+          <div class="featurebox-bar">
+            <input
+              type="text"
+              v-model="searchText"
+              placeholder="尋找站點"
+              class="featurebox-bar-input"
+            />
+            <span
+              class="featurebox-bar-icon"
+              @click="navsActive = 'searchs'"
+            >
+              <i class="fas fa-search"/>
+            </span>
+            <span
+              class="featurebox-bar-icon"
+              @click="navsActive = 'favs'"
+            >
+              <i class="fas fa-star"/>
+            </span>
+          </div>
           <ul
             v-if="navsActive === 'searchs'"
             class="list-group featurebox-result"
@@ -99,7 +100,7 @@
       <div class="col-md-8 map">
         <l-map ref="map" :zoom="zoom" :center="center" :options="{zoomControl: false}">
           <l-tile-layer :url="url" />
-          <l-control-zoom position="bottomleft" />
+          <l-control-zoom position="bottomright" />
           <v-marker-cluster>
             <l-marker
               ref="marker"
@@ -128,6 +129,8 @@
                   <span>可還：{{ youbike.bemp }}</span>
                 </h6>
                 <h6>地址：{{ youbike.ar }}</h6>
+                <h6>近三小時內天氣：{{ youbike.weather }}</h6>
+                <h6>近三小時內平均溫度：{{ youbike.temperature }}°C</h6>
                 <h6>資料更新時間  {{ youbike.mday|displayDate }}</h6>
               </l-popup>
             </l-marker>
@@ -150,11 +153,11 @@ export default {
           favored: false,
         },
       ],
-      weather: [],
+      weathers: [],
       searchText: '',
       navsActive: '',
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      zoom: 17,
+      zoom: 13,
       center: [25.047739238212436, 121.5168348654844],
     };
   },
@@ -190,6 +193,11 @@ export default {
     },
   },
   watch: {
+    youbikes() {
+      if (this.youbikes.length > 1) {
+        this.getWeathers();
+      }
+    },
     searchText(searchText) {
       switch (searchText) {
         case '':
@@ -207,7 +215,6 @@ export default {
       this.axios.get(youbikeAPI).then((response) => {
         if (response) {
           this.youbikes = Object.values(response.data.retVal);
-          console.log(this.youbikes);
           this.setFavYoubikes();
         } else {
           console.log('伺服器錯誤，請稍後再試');
@@ -258,17 +265,36 @@ export default {
         }
       }
     },
-    // getWeather() {
-    //   const weatherAPI = 'https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-D0047-069?Authorization=rdec-key-123-45678-011121314';
-    //   this.axios.get(weatherAPI).then((response) => {
-    //     if (response) {
-    //       this.weather = response.data.records.locations[0].location;
-    //       // console.log(this.weather);
-    //     } else {
-    //       console.log('天氣API錯誤');
-    //     }
-    //   });
-    // },
+    getWeathers() {
+      const weatherAPI = 'https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-D0047-061?Authorization=rdec-key-123-45678-011121314';
+      this.axios.get(weatherAPI).then((response) => {
+        if (response) {
+          this.weathers = response.data.records.locations[0].location;
+          this.setWeathers();
+        } else {
+          console.log('天氣API錯誤');
+        }
+      });
+    },
+    setWeathers() {
+      this.youbikes.forEach((item, index) => {
+        this.weathers.forEach((ite) => {
+          if (
+            item.sarea === ite.locationName
+            && new Date().getHours() % 6 < 3
+          ) {
+            this.$set(this.youbikes[index], 'weather', ite.weatherElement[1].time[0].elementValue[0].value);
+            this.$set(this.youbikes[index], 'temperature', ite.weatherElement[3].time[0].elementValue[0].value);
+          } else if (
+            item.sarea === ite.locationName
+            && new Date().getHours() % 6 >= 3
+          ) {
+            this.$set(this.youbikes[index], 'weather', ite.weatherElement[1].time[1].elementValue[0].value);
+            this.$set(this.youbikes[index], 'temperature', ite.weatherElement[3].time[1].elementValue[0].value);
+          }
+        });
+      });
+    },
     focusOn(display) {
       if (document.body.clientWidth < 767.98) {
         const tempLat = String(Number(display.lat) + 0.0021);
@@ -283,7 +309,6 @@ export default {
   },
   created() {
     this.getYoubikes();
-    // this.getWeather();
   },
 };
 </script>
@@ -294,15 +319,12 @@ export default {
 .map {
   height: 100vh;
 }
-.highlight {
-  background: #e9ffe3;
-}
 .featurebox {
   position: fixed;
   top: 30px;
+  left: 10px;
+  right: 10px;
   z-index: 401;
-  margin-left: 0.5rem;
-  margin-right: 0.5rem;
   border-radius: 0.25rem;
   background-color: #fff;
   @include media-breakpoint-up(md) {
@@ -314,14 +336,11 @@ export default {
   }
 }
 .featurebox-bar {
-  width: 100%;
   height: 60px;
   display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
+  justify-content: end;
   border: 1px solid #ced4da;
   border-radius: 0.25rem;
-  background-color: #fff;
   line-height: 1.5;
   font-weight: 400;
   font-size: 1rem;
@@ -329,23 +348,24 @@ export default {
 }
 .featurebox-bar-input {
   flex: 1 1 auto;
+  min-width: 140px;
   border: none;
-  border-radius: 0.25rem;
   padding: 0.375rem 0.75rem;
 }
 .featurebox-bar-icon {
   display: flex;
+  justify-content: center;
   align-items: center;
-  padding: 0.375rem 0.75rem;
+  min-width: 44px;
   text-align: center;
-  white-space: nowrap;
   cursor: pointer;
 }
 .featurebox-result {
   height: 25vh;
   overflow-y: auto;
+  cursor: pointer;
   @include media-breakpoint-up(md) {
-    height: 100vh;
+    height: calc(100vh - 68px);
   }
 }
 .icon-favs {
