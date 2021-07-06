@@ -1,5 +1,5 @@
 <template>
-  <div style="overflow-y: auto">
+  <div>
     <div
       v-for="base in bases"
       :key="base.sno"
@@ -34,22 +34,18 @@ export default {
   },
   methods: {
     focusOn(base) {
-      if (document.body.clientWidth < 767.98) {
-        const tempLat = String(Number(base.lat) + 0.0013);
-        this.$parent.$refs.map.mapObject.setView([tempLat, base.lng], 17);
-      } else {
-        this.$parent.$refs.map.mapObject.setView([base.lat, base.lng], 17);
-      }
+      const tempLat = String(Number(base.lat) + 0.0013);
+      this.$parent.$refs.map.mapObject.setView([tempLat, base.lng], 17);
       this.$nextTick(() => {
         this.$parent.$refs.marker[base.oriIndex].mapObject.openPopup();
       });
-      this.$emit('changeNavsActive', '');
+      this.$emit('closeSidebar', '');
     },
-    deleteFavYoubikes(BaseId) {
-      this.$emit('deleteFavYoubikes', BaseId);
+    deleteFavYoubikes(baseId) {
+      this.$emit('deleteFavYoubikes', baseId);
     },
-    addToFavYoubikes(BaseId) {
-      this.$emit('addToFavYoubikes', BaseId);
+    addToFavYoubikes(baseId) {
+      this.$emit('addToFavYoubikes', baseId);
     },
   },
 };
