@@ -4,14 +4,16 @@
       <button
         type="button"
         class="btn-sidebar"
-        :class="{ 'd-none': sidebarActive, 'd-block': !sidebarActive}"
+        :class="{ 'd-none': sidebarActive,
+          'd-block': !sidebarActive }"
         @click="sidebarActive = !sidebarActive"
       >
         快點我
       </button>
       <div
         class="col-md-4 sidebar"
-        :class="{ 'd-none': !sidebarActive, 'd-block': sidebarActive}"
+        :class="{ 'd-none': !sidebarActive,
+          'd-flex': sidebarActive }"
       >
         <div class="sidebar-header">
           <button
@@ -31,50 +33,49 @@
           <li class="nav-item">
             <a
               class="nav-link"
-              @click="switchNavsActive('searchs')"
-              :class="{ 'text-secondary': navsActive === 'searchs'}"
+              @click="switchNavActive('searchs')"
+              :class="{ 'text-primary': navActive === 'searchs',
+                'border-active': navActive === 'searchs' }"
             >搜尋結果</a>
           </li>
           <li class="nav-item">
             <a
               class="nav-link"
-              @click="switchNavsActive('favs')"
-              :class="{ 'text-secondary': navsActive === 'favs'}"
+              @click="switchNavActive('favs')"
+              :class="{ 'text-primary': navActive === 'favs',
+                'border-active': navActive === 'favs' }"
             >收藏站點</a>
           </li>
         </ul>
-        <div
-          v-if="navsActive === 'searchs'"
-          class="sidebar-result"
-        >
-          <h6
-            v-if="searchs.length === 0 || !searchs"
-            class="mt-3 text-center"
-          >查無相關站點</h6>
-          <card-result
-            v-else
-            :bases="searchs"
-            @changeNavsActive="closeSidebar()"
-            @deleteFavYoubikes="deleteFavYoubikes"
-            @addToFavYoubikes="addToFavYoubikes"
-          />
+        <div class="sidebar-result">
+          <div v-if="navActive === 'searchs'">
+            <h6
+              v-if="searchs.length === 0 || !searchs"
+              class="mt-3 text-center"
+            >查無相關站點</h6>
+            <card-result
+              v-else
+              :bases="searchs"
+              @closeSidebar="closeSidebar()"
+              @deleteFavYoubikes="deleteFavYoubikes"
+              @addToFavYoubikes="addToFavYoubikes"
+            />
+          </div>
+          <div v-if="navActive === 'favs'">
+            <h6
+              v-if="favs.length === 0 || !favs"
+              class="mt-3 text-center"
+            >目前尚無收藏站點</h6>
+            <card-result
+              v-else
+              :bases="favs"
+              @closeSidebar="closeSidebar()"
+              @deleteFavYoubikes="deleteFavYoubikes"
+              @addToFavYoubikes="addToFavYoubikes"
+            />
+          </div>
         </div>
-        <div
-          v-if="navsActive === 'favs'"
-          class="sidebar-result"
-        >
-          <h6
-            v-if="favs.length === 0 || !favs"
-            class="mt-3 text-center"
-          >目前尚無收藏站點</h6>
-          <card-result
-            v-else
-            :bases="favs"
-            @changeNavsActive="closeSidebar()"
-            @deleteFavYoubikes="deleteFavYoubikes"
-            @addToFavYoubikes="addToFavYoubikes"
-          />
-        </div>
+        <p class="sidebar-time">資料更新時間：{{ new Date().toLocaleString() }}</p>
       </div>
       <div
         class="map"
@@ -91,6 +92,12 @@
               :key="youbike.sno"
               :lat-lng="[youbike.lat, youbike.lng]"
             >
+              <l-icon
+                :icon-size="iconSize"
+                :icon-anchor="iconAnchor"
+                :icon-url="switchIcon(youbike)"
+                :icon-retina-url="switchIcon(youbike)"
+              />
               <l-popup class="position-relative">
                 <div class="d-flex justify-content-between">
                   <div class="flex-fill">
@@ -113,7 +120,6 @@
                 </div>
                 <h6>天氣：{{ youbike.weather }}</h6>
                 <h6>位置：{{ youbike.ar }}</h6>
-                <h6>資料更新時間  {{ youbike.mday|displayDate }}</h6>
                 <div class="d-flex">
                   <h6
                     class="popup-footer-block1"
@@ -150,12 +156,14 @@ export default {
       ],
       weathers: [],
       searchText: '',
-      navsActive: '',
+      navActive: '',
       sidebarActive: false,
       bases: [],
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       zoom: 13,
       center: [25.049, 121.515],
+      iconSize: [25, 40],
+      iconAnchor: [12, 5],
     };
   },
   computed: {
@@ -198,18 +206,13 @@ export default {
     searchText() {
       switch (this.searchText) {
         case '':
-          this.navsActive = '';
+          this.navActive = '';
           break;
         default:
-          this.navsActive = 'searchs';
+          this.navActive = 'searchs';
           break;
       }
     },
-    // navsActive() {
-    //   switch (this.navsActive) {
-    //     case ''
-    //   }
-    // }
   },
   methods: {
     getYoubikes() {
@@ -238,10 +241,29 @@ export default {
             }
           }
         }
+      } else {
+        for (let i = 0; i < youbikesL; i++) {
+          this.$set(this.youbikes[i], 'favored', false);
+        }
       }
-      for (let i = 0; i < youbikesL; i++) {
-        this.$set(this.youbikes[i], 'favored', false);
+    },
+    switchIcon(youbike) {
+      if (youbike.act === '0') {
+        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/6bd04058579f7751faad7875f2c93a72381ff93e/src/assets/images/marker-notworking.svg';
       }
+      if (
+        youbike.act === '1'
+        && youbike.sbi === '0'
+      ) {
+        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/6bd04058579f7751faad7875f2c93a72381ff93e/src/assets/images/marker-noparking.svg';
+      }
+      if (
+        youbike.act === '1'
+        && youbike.bemp === '0'
+      ) {
+        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/6bd04058579f7751faad7875f2c93a72381ff93e/src/assets/images/marker-nobike.svg';
+      }
+      return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/0aa68fbd314578893b3d09b16a697b9f35164a76/src/assets/images/marker.svg';
     },
     addToFavYoubikes(addedId) {
       const tempId = JSON.parse(localStorage.getItem('favYoubikesId')) || [];
@@ -281,20 +303,19 @@ export default {
     setWeathers() {
       const youbikesL = this.youbikes.length;
       const weathersL = this.weathers.length;
+      const time = new Date().getHours() % 6;
       for (let i = 0; i < youbikesL; i++) {
         for (let j = 0; j < weathersL; j++) {
-          if (
-            this.youbikes[i].sarea === this.weathers[j].locationName
-            && new Date().getHours() % 6 < 3
-          ) {
-            this.$set(this.youbikes[i], 'weather', this.weathers[j].weatherElement[1].time[0].elementValue[0].value);
-            this.$set(this.youbikes[i], 'temperature', this.weathers[j].weatherElement[3].time[0].elementValue[0].value);
-          } else if (
-            this.youbikes[i].sarea === this.weathers[j].locationName
-            && new Date().getHours() % 6 >= 3
-          ) {
-            this.$set(this.youbikes[i], 'weather', this.weathers[j].weatherElement[1].time[1].elementValue[0].value);
-            this.$set(this.youbikes[i], 'temperature', this.weathers[j].weatherElement[3].time[1].elementValue[0].value);
+          if (this.youbikes[i].sarea === this.weathers[j].locationName) {
+            if (time < 3) {
+              this.$set(this.youbikes[i], 'weather', this.weathers[j].weatherElement[1].time[0].elementValue[0].value);
+              this.$set(this.youbikes[i], 'temperature', this.weathers[j].weatherElement[3].time[0].elementValue[0].value);
+              break;
+            } else {
+              this.$set(this.youbikes[i], 'weather', this.weathers[j].weatherElement[1].time[1].elementValue[0].value);
+              this.$set(this.youbikes[i], 'temperature', this.weathers[j].weatherElement[3].time[1].elementValue[0].value);
+              break;
+            }
           }
         }
       }
@@ -304,13 +325,13 @@ export default {
         this.sidebarActive = false;
       }
     },
-    switchNavsActive(keyword) {
-      switch (this.navsActive) {
+    switchNavActive(keyword) {
+      switch (this.navActive) {
         case keyword:
-          this.navsActive = '';
+          this.navActive = '';
           break;
         default:
-          this.navsActive = keyword;
+          this.navActive = keyword;
           break;
       }
     },
