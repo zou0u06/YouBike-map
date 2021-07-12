@@ -4,12 +4,15 @@
       v-for="base in bases"
       :key="base.sno"
       class="cardresult"
-      @click="focusOn(base)"
+      @click="focusOnMarkers(base)"
     >
       <div class="d-flex">
         <h5 class="flex-fill text-primary">
           {{ base.sna }}
-          <span v-if="base.act === '0'">（暫停營運）</span>
+          <span v-if="base.act === '0'
+            || (base.sbi === '0'
+            && base.bemp === '0')"
+          >（暫停營運）</span>
         </h5>
         <i
           v-if="base.favored"
@@ -33,13 +36,11 @@ export default {
     bases: Array,
   },
   methods: {
-    focusOn(base) {
+    focusOnMarkers(base) {
       const tempLat = String(Number(base.lat) + 0.0013);
       this.$parent.$refs.map.mapObject.setView([tempLat, base.lng], 17);
-      this.$nextTick(() => {
-        this.$parent.$refs.marker[base.oriIndex].mapObject.openPopup();
-      });
-      this.$emit('closeSidebar', '');
+      this.$parent.$refs.marker[base.oriIndex].mapObject.openPopup();
+      this.$emit('closeSidebar');
     },
     deleteFavYoubikes(baseId) {
       this.$emit('deleteFavYoubikes', baseId);

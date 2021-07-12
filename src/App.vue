@@ -1,33 +1,78 @@
 <template>
   <div class="container-fluid">
     <div class="row">
+      <msg-modal/>
       <button
         type="button"
         class="btn-sidebar"
         :class="{ 'd-none': sidebarActive,
           'd-block': !sidebarActive }"
         @click="sidebarActive = !sidebarActive"
-      >
-        快點我
+      >功能列表
       </button>
+      <div
+        class="legend"
+        @click="legendActive = !legendActive"
+      >
+        <div
+          class="flex-jb-aic"
+          :class="{ 'mb-2': legendActive }"
+        >
+          <i class="fas fa-map-marker-alt"/>
+          圖例
+          <i
+            v-if="legendActive"
+            class="fas fa-caret-up"
+          />
+          <i
+            v-else
+            class="fas fa-caret-down"
+          />
+        </div>
+        <div :class="{ 'd-block': legendActive,
+          'd-none': !legendActive }">
+          <div class="d-flex align-items-center">
+            <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/31559bd4812015166487699283aed8fab27d6fe0/src/assets/images/marker.svg">
+            <span>正常營運</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/31559bd4812015166487699283aed8fab27d6fe0/src/assets/images/marker-notworking.svg">
+            <span>暫停營運</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/4e8cce62ed489ff8f54f8cfadfa06f0cc53c3bbb/src/assets/images/marker-nobike.svg">
+            <span>無法借車</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/4e8cce62ed489ff8f54f8cfadfa06f0cc53c3bbb/src/assets/images/marker-noparking.svg">
+            <span>無法還車</span>
+          </div>
+        </div>
+      </div>
       <div
         class="col-md-4 sidebar"
         :class="{ 'd-none': !sidebarActive,
           'd-flex': sidebarActive }"
       >
         <div class="sidebar-header">
-          <button
-            type="button"
-            class="btn-close"
-            aria-label="Close"
-            @click="sidebarActive = false"
-          />
-          <input
-            type="text"
-            v-model="searchText"
-            placeholder="尋找站點"
-            class="sidebar-input"
-          />
+          <div class="d-flex">
+            <h1 class="h2 mb-3">臺北市 YouBike 即時資訊地圖</h1>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="sidebarActive = false"
+            />
+          </div>
+          <div class="sidebar-input">
+            <input
+              type="text"
+              v-model="searchText"
+              placeholder="請以站名、路名等關鍵字搜尋"
+              class="sidebar-input-textfield"
+            />
+            <span class="sidebar-input-icon fas fa-search"/>
+          </div>
         </div>
         <ul class="nav sidebar-nav">
           <li class="nav-item">
@@ -85,7 +130,7 @@
         <l-map ref="map" :zoom="zoom" :center="center" :options="{zoomControl: false}">
           <l-tile-layer :url="url" />
           <l-control-zoom position="bottomright" />
-          <v-marker-cluster>
+          <!-- <v-marker-cluster>
             <l-marker
               ref="marker"
               v-for="youbike in youbikes"
@@ -95,15 +140,18 @@
               <l-icon
                 :icon-size="iconSize"
                 :icon-anchor="iconAnchor"
-                :icon-url="switchIcon(youbike)"
-                :icon-retina-url="switchIcon(youbike)"
+                :icon-url="setIcons(youbike)"
+                :icon-retina-url="setIcons(youbike)"
               />
               <l-popup class="position-relative">
                 <div class="d-flex justify-content-between">
                   <div class="flex-fill">
-                    <h4 class="text-primary bg-white">
+                    <h4 class="text-primary fw-bolder">
                       {{ youbike.sna }}
-                      <span v-if="youbike.act === '0'">（暫停營運）</span>
+                      <span v-if="youbike.act === '0'
+                        || (youbike.sbi === '0'
+                        && youbike.bemp === '0')"
+                      >（暫停營運）</span>
                     </h4>
                     <h6>溫度：{{ youbike.temperature }}°C</h6>
                   </div>
@@ -127,12 +175,12 @@
                   >可借：{{ youbike.sbi }}</h6>
                   <h6
                     class="popup-footer-block2"
-                    :class="{'bg-success': youbike.sbi > 0, 'bg-danger': youbike.sbi === '0'}"
+                    :class="{'bg-success': youbike.bemp > 0, 'bg-danger': youbike.bemp === '0'}"
                   >可還：{{ youbike.bemp }}</h6>
                 </div>
               </l-popup>
             </l-marker>
-          </v-marker-cluster>
+          </v-marker-cluster> -->
         </l-map>
       </div>
     </div>
@@ -158,6 +206,7 @@ export default {
       searchText: '',
       navActive: '',
       sidebarActive: false,
+      legendActive: false,
       bases: [],
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       zoom: 13,
@@ -222,7 +271,7 @@ export default {
           this.youbikes = Object.values(response.data.retVal);
           this.setFavYoubikes();
         } else {
-          console.log('伺服器錯誤，請稍後再試');
+          this.$store.commit('SET_MSG', 'errorYoubike');
         }
       });
     },
@@ -247,23 +296,26 @@ export default {
         }
       }
     },
-    switchIcon(youbike) {
-      if (youbike.act === '0') {
-        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/6bd04058579f7751faad7875f2c93a72381ff93e/src/assets/images/marker-notworking.svg';
+    setIcons(youbike) {
+      if (youbike.act === '0'
+        || (youbike.sbi === '0'
+        && youbike.bemp === '0')
+      ) {
+        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/31559bd4812015166487699283aed8fab27d6fe0/src/assets/images/marker-notworking.svg';
       }
       if (
         youbike.act === '1'
         && youbike.sbi === '0'
       ) {
-        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/6bd04058579f7751faad7875f2c93a72381ff93e/src/assets/images/marker-noparking.svg';
+        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/4e8cce62ed489ff8f54f8cfadfa06f0cc53c3bbb/src/assets/images/marker-nobike.svg';
       }
       if (
         youbike.act === '1'
         && youbike.bemp === '0'
       ) {
-        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/6bd04058579f7751faad7875f2c93a72381ff93e/src/assets/images/marker-nobike.svg';
+        return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/4e8cce62ed489ff8f54f8cfadfa06f0cc53c3bbb/src/assets/images/marker-noparking.svg';
       }
-      return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/0aa68fbd314578893b3d09b16a697b9f35164a76/src/assets/images/marker.svg';
+      return 'https://raw.githubusercontent.com/zou0u06/YouBike-map/31559bd4812015166487699283aed8fab27d6fe0/src/assets/images/marker.svg';
     },
     addToFavYoubikes(addedId) {
       const tempId = JSON.parse(localStorage.getItem('favYoubikesId')) || [];
@@ -296,7 +348,7 @@ export default {
           this.weathers = response.data.records.locations[0].location;
           this.setWeathers();
         } else {
-          console.log('天氣API錯誤');
+          this.$store.commit('SET_MSG', 'errorWeather');
         }
       });
     },
