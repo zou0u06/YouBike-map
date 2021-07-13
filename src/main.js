@@ -8,7 +8,7 @@ import vueAxios from 'vue-axios';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import {
-  LMap, LTileLayer, LMarker, LControlZoom, LPopup, LIcon,
+  LMap, LTileLayer, LMarker, LControlZoom, LPopup, LIcon, LControlAttribution,
 } from 'vue2-leaflet';
 import Vue2LeafletMarkerCluster from 'vue2-leaflet-markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -31,6 +31,7 @@ Vue.component('l-marker', LMarker);
 Vue.component('l-icon', LIcon);
 Vue.component('l-control-zoom', LControlZoom);
 Vue.component('l-popup', LPopup);
+Vue.component('l-control-attribution', LControlAttribution);
 Vue.component('v-marker-cluster', Vue2LeafletMarkerCluster);
 Vue.component('msg-modal', MsgModal);
 

@@ -36,16 +36,16 @@
             <span>正常營運</span>
           </div>
           <div class="d-flex align-items-center">
-            <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/31559bd4812015166487699283aed8fab27d6fe0/src/assets/images/marker-notworking.svg">
-            <span>暫停營運</span>
-          </div>
-          <div class="d-flex align-items-center">
             <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/4e8cce62ed489ff8f54f8cfadfa06f0cc53c3bbb/src/assets/images/marker-nobike.svg">
             <span>無法借車</span>
           </div>
           <div class="d-flex align-items-center">
             <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/4e8cce62ed489ff8f54f8cfadfa06f0cc53c3bbb/src/assets/images/marker-noparking.svg">
             <span>無法還車</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <img src="https://raw.githubusercontent.com/zou0u06/YouBike-map/31559bd4812015166487699283aed8fab27d6fe0/src/assets/images/marker-notworking.svg">
+            <span>暫停營運</span>
           </div>
         </div>
       </div>
@@ -59,7 +59,7 @@
             <h1 class="h2 mb-3">臺北市 YouBike 即時資訊地圖</h1>
             <button
               type="button"
-              class="btn-close"
+              class="btn-close ms-2"
               aria-label="Close"
               @click="sidebarActive = false"
             />
@@ -68,7 +68,7 @@
             <input
               type="text"
               v-model="searchText"
-              placeholder="請以站名、路名等關鍵字搜尋"
+              placeholder="請搜尋站名、路名、地標等關鍵字"
               class="sidebar-input-textfield"
             />
             <span class="sidebar-input-icon fas fa-search"/>
@@ -120,17 +120,26 @@
             />
           </div>
         </div>
-        <p class="sidebar-time">資料更新時間：{{ new Date().toLocaleString() }}</p>
+        <p class="sidebar-time">資料更新時間：{{ time }}（每分鐘更新１次）</p>
       </div>
       <div
         class="map"
         :class="{ 'col': sidebarActive, 'col-md-8': sidebarActive}"
         @click="closeSidebar()"
       >
-        <l-map ref="map" :zoom="zoom" :center="center" :options="{zoomControl: false}">
+        <l-map
+          ref="map"
+          :zoom="zoom"
+          :center="center"
+          :options="{zoomControl: false, attributionControl: false}"
+        >
           <l-tile-layer :url="url" />
+          <l-control-attribution
+            position="bottomright"
+            prefix="<a href='https://leafletjs.com' target='_blank' title='AJSlibraryforinteractivemaps'>Leaflet</a> | 程式碼：<a href='https://github.com/zou0u06' target='_blank'>Frank Liu</a> 樣式參考：<a href='https://www.behance.net/gallery/93048833/UIUX-?tracking_source=for_you_feed_user_published'>K.T</a>"
+          />
           <l-control-zoom position="bottomright" />
-          <!-- <v-marker-cluster>
+          <v-marker-cluster>
             <l-marker
               ref="marker"
               v-for="youbike in youbikes"
@@ -180,7 +189,7 @@
                 </div>
               </l-popup>
             </l-marker>
-          </v-marker-cluster> -->
+          </v-marker-cluster>
         </l-map>
       </div>
     </div>
@@ -203,6 +212,7 @@ export default {
         },
       ],
       weathers: [],
+      time: '',
       searchText: '',
       navActive: '',
       sidebarActive: false,
@@ -247,10 +257,13 @@ export default {
     },
   },
   watch: {
-    youbikes() {
-      if (this.youbikes.length > 1) {
-        this.getWeathers();
-      }
+    youbikes: {
+      handler() {
+        if (this.youbikes.length > 1) {
+          this.getWeathers();
+        }
+      },
+      deep: true,
     },
     searchText() {
       switch (this.searchText) {
@@ -262,6 +275,19 @@ export default {
           break;
       }
     },
+  },
+  created() {
+    this.getYoubikes();
+    this.time = new Date().toLocaleString();
+    window.setInterval((() => {
+      this.getYoubikes();
+      this.time = new Date().toLocaleString();
+    }), 60000);
+    if (document.body.clientWidth < 767.98) {
+      this.sidebarActive = false;
+    } else {
+      this.sidebarActive = true;
+    }
   },
   methods: {
     getYoubikes() {
@@ -387,14 +413,6 @@ export default {
           break;
       }
     },
-  },
-  created() {
-    this.getYoubikes();
-    if (document.body.clientWidth < 767.98) {
-      this.sidebarActive = false;
-    } else {
-      this.sidebarActive = true;
-    }
   },
 };
 </script>
